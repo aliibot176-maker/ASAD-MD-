@@ -7,7 +7,7 @@
   "BOT_IMG": "",
   "DEFAULT_DP": "assets/bot_dp.jpg",
   "ANTILINK_ACTION": "delete",
-  "FORCE_JOIN_ENABLED": true,
+  "FORCE_JOIN_ENABLED": false,
   "FORCE_CHANNEL_LINK": "https://whatsapp.com/channel/0029VbATSM74dTnMw4evnN13",
   "FORCE_CHANNEL_ID": "",
   "WA_CHANNEL_LINK": "https://whatsapp.com/channel/0029VbATSM74dTnMw4evnN13",
