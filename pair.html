@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>𝛥𝑆𝛥𝐷 𝛭𝐷 𝐵𝛩𝑇 — Multi-User WhatsApp Pairing</title>
+  <style>
+    * { box-sizing: border-box; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    :root {
+      --em: #10b981;
+      --em-bright: #34d399;
+      --cy: #22d3ee;
+      --bg: #030907;
+      --card: rgba(8, 22, 17, 0.88);
+      --line: rgba(16, 185, 129, 0.25);
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: #ecfdf5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 14px;
+      position: relative;
+      overflow-x: hidden;
+    }
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(16, 185, 129, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(16, 185, 129, 0.045) 1px, transparent 1px);
+      background-size: 30px 30px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .orb1, .orb2 {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(85px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+    .orb1 { width: 340px; height: 340px; background: #059669; top: -110px; left: -90px; animation: floatOrb 9s ease-in-out infinite alternate; }
+    .orb2 { width: 320px; height: 320px; background: #0891b2; bottom: -120px; right: -80px; animation: floatOrb 11s ease-in-out infinite alternate-reverse; }
+    @keyframes floatOrb { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(26px, 22px) scale(1.12); } }
+    @keyframes pulseDot { 0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7); } 70% { box-shadow: 0 0 0 8px rgba(52, 211, 153, 0); } }
+    .wrap { position: relative; z-index: 1; width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 16px; }
+    .card {
+      position: relative;
+      width: 100%;
+      background: var(--card);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 24px 20px;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      overflow: hidden;
+    }
+    .card::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 12%; right: 12%; height: 2px;
+      background: linear-gradient(90deg, transparent, #34d399, #22d3ee, transparent);
+    }
+    .hero { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+    .avatar-ring {
+      position: relative;
+      width: 60px; height: 60px;
+      border-radius: 18px;
+      padding: 2px;
+      background: linear-gradient(135deg, #34d399, #06b6d4);
+      flex-shrink: 0;
+      box-shadow: 0 0 24px rgba(16, 185, 129, 0.4);
+    }
+    .avatar-img { width: 100%; height: 100%; border-radius: 16px; object-fit: cover; display: block; background: #071711; }
+    .avatar-fallback {
+      width: 100%; height: 100%; border-radius: 16px;
+      background: linear-gradient(135deg, #064e3b, #0e7490);
+      display: none; align-items: center; justify-content: center;
+      font-size: 26px; font-weight: 900; color: #fff;
+    }
+    .live-dot {
+      position: absolute; bottom: -2px; right: -2px;
+      width: 13px; height: 13px; border-radius: 50%;
+      background: #34d399; border: 2px solid #04120d;
+      animation: pulseDot 2s infinite;
+    }
+    .hero-meta { min-width: 0; flex: 1; }
+    .top-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .brand {
+      font-size: 21px; font-weight: 900; letter-spacing: 0.6px; margin: 0;
+      background: linear-gradient(90deg, #6ee7b7, #34d399, #22d3ee);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .tag {
+      font-size: 10px; font-weight: 800; letter-spacing: 0.9px;
+      padding: 4px 10px; border-radius: 999px;
+      background: rgba(16, 185, 129, 0.14);
+      border: 1px solid rgba(52, 211, 153, 0.45);
+      color: #6ee7b7;
+    }
+    .sub { font-size: 12px; color: #a7f3d0; margin: 4px 0 0; opacity: 0.85; line-height: 1.4; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+    .statbox { background: rgba(5, 16, 12, 0.88); border: 1px solid rgba(20, 83, 61, 0.65); padding: 10px 8px; border-radius: 14px; text-align: center; }
+    .statlbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.7px; color: #6ee7b7; opacity: 0.85; }
+    .statval { font-size: 14px; font-weight: 800; color: #fff; margin-top: 3px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .gate { background: rgba(11, 41, 30, 0.78); border: 1px solid #10b981; border-radius: 16px; padding: 14px; margin-bottom: 16px; font-size: 13px; display: none; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      width: 100%; padding: 13px 16px; border: 0; border-radius: 13px;
+      font-weight: 800; font-size: 14px; cursor: pointer; text-decoration: none;
+      transition: transform 0.15s, filter 0.15s, box-shadow 0.15s;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary {
+      background: linear-gradient(135deg, #34d399, #10b981, #06b6d4);
+      color: #022c22; margin-top: 12px;
+      box-shadow: 0 10px 24px rgba(16, 185, 129, 0.3);
+    }
+    .btn-primary:hover { filter: brightness(1.08); box-shadow: 0 12px 28px rgba(16, 185, 129, 0.42); }
+    .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-join { background: linear-gradient(135deg, #10b981, #059669); color: #fff; margin-top: 10px; box-shadow: 0 8px 20px rgba(5, 150, 105, 0.28); }
+    .btn-verify { background: #115e59; color: #ccfbf1; margin-top: 8px; border: 1px solid rgba(45, 212, 191, 0.35); }
+    .btn-ghost { background: rgba(6, 18, 14, 0.9); color: #a7f3d0; border: 1px solid rgba(31, 92, 69, 0.85); margin-top: 9px; font-size: 12px; padding: 11px; }
+    .btn-ghost:hover { border-color: #34d399; color: #fff; }
+    label { display: block; font-size: 12px; font-weight: 700; color: #a7f3d0; margin-bottom: 7px; letter-spacing: 0.2px; }
+    .input-wrap { position: relative; display: flex; align-items: center; }
+    .input-ico { position: absolute; left: 13px; font-size: 15px; opacity: 0.85; pointer-events: none; }
+    input {
+      width: 100%; padding: 13px 14px 13px 38px; border-radius: 13px;
+      border: 1px solid #1f5c45; background: rgba(5, 14, 11, 0.94);
+      color: #fff; font-size: 15px; font-weight: 600; letter-spacing: 0.4px; outline: none; transition: 0.18s;
+    }
+    input:focus { border-color: #34d399; box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.18); }
+    .codebox {
+      margin-top: 16px; padding: 18px 14px; background: rgba(5, 15, 12, 0.96);
+      border: 1px dashed #34d399; border-radius: 16px; text-align: center;
+      display: none; box-shadow: 0 0 28px rgba(16, 185, 129, 0.18);
+    }
+    .code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 32px; font-weight: 900; letter-spacing: 4px; color: #34d399;
+      margin: 8px 0; text-shadow: 0 0 18px rgba(52, 211, 153, 0.45);
+    }
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 12px; text-align: center; }
+    .step { background: rgba(16, 185, 129, 0.07); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 10px; padding: 7px 5px; font-size: 10px; color: #a7f3d0; line-height: 1.35; }
+    .step b { display: block; color: #34d399; font-size: 11px; margin-bottom: 2px; }
+    .msg { margin-top: 12px; font-size: 12.5px; color: #fcd34d; min-height: 18px; text-align: center; font-weight: 600; }
+    .share-bar {
+      margin-top: 12px; padding: 10px 12px; background: rgba(5, 14, 11, 0.92);
+      border: 1px solid rgba(20, 83, 61, 0.78); border-radius: 13px;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .menu-card {
+      position: relative; background: var(--card); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--line); border-radius: 22px; padding: 18px;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+    }
+    .menu-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+    .mtab {
+      background: rgba(6, 18, 14, 0.95); color: #a7f3d0; border: 1px solid #143f2f;
+      border-radius: 10px; padding: 6px 11px; font-size: 11px; font-weight: 700; cursor: pointer; transition: 0.15s;
+    }
+    .mtab:hover { border-color: #34d399; }
+    .mtab.active { background: linear-gradient(135deg, #34d399, #10b981); color: #022c22; border-color: transparent; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+    .mlist { background: rgba(4, 12, 9, 0.94); border: 1px solid #12382a; border-radius: 14px; padding: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .cmd-chip {
+      background: rgba(16, 185, 129, 0.09); border: 1px solid rgba(52, 211, 153, 0.24);
+      color: #d1fae5; border-radius: 8px; padding: 5px 9px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; font-weight: 600;
+    }
+    .footer-note { text-align: center; font-size: 11px; color: #6ee7b7; opacity: 0.68; margin-top: 2px; }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="orb1"></div>
+  <div class="orb2"></div>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="hero">
+        <div class="avatar-ring">
+          <img id="botAvatar" class="avatar-img" src="/bot-dp.jpg" alt="𝛥𝑆𝛥𝐷 𝛭𝐷 𝐵𝛩𝑇">
+          <div id="avatarFallback" class="avatar-fallback">⚡</div>
+          <span class="live-dot"></span>
+        </div>
+        <div class="hero-meta">
+          <div class="top-row">
+            <h1 class="brand" id="brandTitle">𝛥𝑆𝛥𝐷 𝛭𝐷 𝐵𝛩𝑇</h1>
+            <span class="tag">CODE: ASADMD11</span>
+          </div>
+          <p class="sub">Ultra-Fast Multi-User WhatsApp MD Pairing Hub</p>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="statbox"><div class="statlbl">🟢 Online</div><div class="statval" id="cnt">0</div></div>
+        <div class="statbox"><div class="statlbl">⚡ Commands</div><div class="statval" id="cmdCnt">135</div></div>
+        <div class="statbox"><div class="statlbl">👑 Owner</div><div class="statval" id="ownerNameVal">𝛥𝑆𝛥𝐷</div></div>
+      </div>
+
+      <div class="gate" id="gateBox">
+        <strong>🔒 Step 1: Join Official Channel</strong>
+        <div style="margin-top:4px;opacity:.85">Join our official channel first to unlock pairing:</div>
+        <a class="btn btn-join" id="gateJoinLink" target="_blank" rel="noopener" href="https://whatsapp.com/channel/0029VbATSM74dTnMw4evnN13">📢 View &amp; Join Channel</a>
+        <button class="btn btn-verify" id="verifyBtn" type="button">✅ Joined! Unlock Pairing</button>
+      </div>
+
+      <div id="pairArea">
+        <label for="phone">WhatsApp Number (With Country Code)</label>
+        <div class="input-wrap">
+          <span class="input-ico">📱</span>
+          <input id="phone" type="tel" placeholder="923001234567" autocomplete="tel" />
+        </div>
+        <button class="btn btn-primary" id="pairBtn" type="button">🔑 Get Pairing Code (ASADMD11)</button>
+        <button class="btn btn-ghost" id="unpairBtn" type="button">🔌 Reset / Unpair Number</button>
+      </div>
+
+      <div class="codebox" id="codeBox">
+        <div style="font-size:12px;color:#a7f3d0;font-weight:700">YOUR WHATSAPP PAIRING CODE</div>
+        <div class="code" id="codeVal">----</div>
+        <button class="btn btn-verify" id="copyBtn" type="button">📋 Copy Code</button>
+        <div class="steps">
+          <div class="step"><b>1. WhatsApp</b>Open Settings</div>
+          <div class="step"><b>2. Linked</b>Tap Link Device</div>
+          <div class="step"><b>3. Phone</b>Enter Code</div>
+        </div>
+        <div id="pairStatus" style="margin-top:10px;font-size:12px;color:#6ee7b7">Waiting for code entry on WhatsApp...</div>
+      </div>
+
+      <div class="msg" id="msg"></div>
+
+      <div class="share-bar">
+        <div style="min-width:0">
+          <div style="font-size:10px;color:#6ee7b7;text-transform:uppercase;letter-spacing:.6px;font-weight:700">Share Pair Site Link</div>
+          <div id="siteLinkVal" style="font-size:11px;color:#d1fae5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:monospace"></div>
+        </div>
+        <button type="button" id="copyLinkBtn" style="flex-shrink:0;background:#0b291e;color:#6ee7b7;border:1px solid #10b981;border-radius:9px;padding:6px 11px;font-size:11px;font-weight:800;cursor:pointer">📋 Copy</button>
+      </div>
+    </div>
+
+    <div class="menu-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <strong style="font-size:13.5px;color:#34d399;letter-spacing:.3px">✦ STYLISH COMMAND MENU (135) ✦</strong>
+        <span style="font-size:10px;font-weight:800;padding:3px 8px;border-radius:999px;background:rgba(16,185,129,.15);color:#6ee7b7;border:1px solid rgba(52,211,153,.3)">ALL ACTIVE</span>
+      </div>
+      <div class="menu-tabs" id="menuTabs"></div>
+      <div class="mlist" id="menuBox"></div>
+      <a class="btn btn-join" id="waChBtn" style="margin-top:12px" target="_blank" rel="noopener" href="https://whatsapp.com/channel/0029VbATSM74dTnMw4evnN13">📢 View Official WhatsApp Channel</a>
+    </div>
+
+    <div class="footer-note">Powered by 𝛥𝑆𝛥𝐷 𝛭𝐷 𝐵𝛩𝑇 • Multi-Session Isolated Engine</div>
+  </div>
+
+  <script>
+    const av = document.getElementById("botAvatar");
+    const af = document.getElementById("avatarFallback");
+    if (av) {
+      av.onerror = () => {
+        av.style.display = "none";
+        if (af) af.style.display = "flex";
+      };
+    }
+
+    const siteLinkEl = document.getElementById("siteLinkVal");
+    if (siteLinkEl) siteLinkEl.textContent = window.location.origin;
+
+    const MENU_DATA = {
+      "👑 Owner": [".alive", ".ping", ".chreact", ".mode private", ".mode public", ".private", ".public", ".pair", ".broadcast", ".bcgroup", ".restart", ".setprefix"],
+      "🛡️ Anti & VV": [".vv (Inbox)", ".antivv", ".antilink", ".antidelete", ".antisticker", ".antispam", ".anticall", ".antibot", ".warn", ".resetwarn"],
+      "👥 Group": [".allgroupmessage", ".groupinfo", ".open", ".close", ".add", ".kick", ".promote", ".demote", ".tagall", ".hidetag", ".link", ".revoke"],
+      "📥 Download": [".play", ".song", ".video", ".ytmp4", ".tiktok", ".fb", ".insta", ".twitter", ".pinterest", ".terabox", ".apk", ".image", ".google"],
+      "⚡ Auto": [".autoreact all", ".autostatus", ".autolike", ".autoread", ".autotyping", ".autorecording", ".autobio", ".autoai", ".autoreply"]
+    };
+
+    const mt = document.getElementById("menuTabs");
+    const mb = document.getElementById("menuBox");
+    function renderMenu(k) {
+      mb.innerHTML = "";
+      (MENU_DATA[k] || []).forEach((cmd) => {
+        const s = document.createElement("span");
+        s.className = "cmd-chip";
+        s.textContent = cmd;
+        mb.appendChild(s);
+      });
+    }
+    Object.keys(MENU_DATA).forEach((k, idx) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "mtab" + (idx === 0 ? " active" : "");
+      b.textContent = k;
+      b.onclick = () => {
+        document.querySelectorAll(".mtab").forEach((x) => x.classList.remove("active"));
+        b.classList.add("active");
+        renderMenu(k);
+      };
+      mt.appendChild(b);
+      if (idx === 0) renderMenu(k);
+    });
+
+    function normPhone(v) {
+      let d = String(v || "").replace(/[^0-9]/g, "");
+      if (d.startsWith("00")) d = d.slice(2);
+      if (d.startsWith("03") && d.length === 11) d = "92" + d.slice(1);
+      else if (d.startsWith("3") && d.length === 10) d = "92" + d;
+      return d;
+    }
+
+    const gateBox = document.getElementById("gateBox");
+    const pairArea = document.getElementById("pairArea");
+    const verifyBtn = document.getElementById("verifyBtn");
+    const gateJoinLink = document.getElementById("gateJoinLink");
+    const waChBtn = document.getElementById("waChBtn");
+
+    function applyGateState(enabled, link) {
+      if (!gateBox || !pairArea) return;
+      if (!enabled) {
+        gateBox.style.display = "none";
+        pairArea.style.opacity = "1";
+        pairArea.style.pointerEvents = "auto";
+        return;
+      }
+      gateBox.style.display = "block";
+      if (link && gateJoinLink) gateJoinLink.href = link;
+      if (localStorage.getItem("asad_joined") === "1") {
+        pairArea.style.opacity = "1";
+        pairArea.style.pointerEvents = "auto";
+      } else {
+        pairArea.style.opacity = "0.45";
+        pairArea.style.pointerEvents = "none";
+      }
+    }
+
+    if (verifyBtn) {
+      verifyBtn.onclick = () => {
+        localStorage.setItem("asad_joined", "1");
+        pairArea.style.opacity = "1";
+        pairArea.style.pointerEvents = "auto";
+        gateBox.style.borderColor = "#34d399";
+        verifyBtn.textContent = "✅ Unlocked!";
+      };
+    }
+
+    async function refreshStatus() {
+      try {
+        const r = await fetch("/api/status");
+        const d = await r.json();
+        document.getElementById("cnt").textContent = d.connectedCount || 0;
+        if (d.botName) document.getElementById("brandTitle").textContent = d.botName;
+        if (d.ownerName) document.getElementById("ownerNameVal").textContent = d.ownerName;
+        if (d.commandCount) document.getElementById("cmdCnt").textContent = d.commandCount;
+        if (d.waChannelLink && waChBtn) waChBtn.href = d.waChannelLink;
+        applyGateState(Boolean(d.forceJoinEnabled), d.forceJoinLink || d.waChannelLink || "");
+      } catch {}
+    }
+    refreshStatus();
+    setInterval(refreshStatus, 5000);
+
+    let activePhone = "";
+    let statusTimer = null;
+
+    document.getElementById("pairBtn").onclick = async () => {
+      const p = normPhone(document.getElementById("phone").value);
+      const msg = document.getElementById("msg");
+      const btn = document.getElementById("pairBtn");
+      if (p.length < 10 || p.length > 15 || p.startsWith("0")) {
+        msg.textContent = "Please enter a valid number with country code (e.g. 923001234567)";
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = "⏳ Connecting WhatsApp...";
+      msg.textContent = "Please wait 4–12 seconds...";
+      try {
+        const r = await fetch("/api/pair", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: p })
+        });
+        const d = await r.json();
+        if (!r.ok || !d.ok) {
+          msg.textContent = "❌ " + (d.error || "Failed");
+          btn.disabled = false;
+          btn.textContent = "🔑 Get Pairing Code (ASADMD11)";
+          return;
+        }
+        if (d.alreadyConnected) {
+          msg.textContent = "✅ +" + d.phone + " is already connected!";
+          btn.disabled = false;
+          btn.textContent = "🔑 Get Pairing Code (ASADMD11)";
+          return;
+        }
+        activePhone = d.phone;
+        document.getElementById("codeVal").textContent = d.formattedCode || d.code;
+        document.getElementById("codeBox").style.display = "block";
+        msg.textContent = "Code ready! Enter this code on your WhatsApp Linked Devices screen.";
+        if (statusTimer) clearInterval(statusTimer);
+        statusTimer = setInterval(async () => {
+          try {
+            const sr = await fetch("/api/pair-status?phone=" + encodeURIComponent(activePhone));
+            const sd = await sr.json();
+            if (sd.connected) {
+              document.getElementById("pairStatus").textContent = "✅ +" + activePhone + " Connected Successfully!";
+              msg.textContent = "🎉 Bot Connected & Channel Auto-Follow Active!";
+              clearInterval(statusTimer);
+              refreshStatus();
+            } else if (sd.lastError) {
+              document.getElementById("pairStatus").textContent = "❌ " + sd.lastError;
+              msg.textContent = "❌ " + sd.lastError;
+              clearInterval(statusTimer);
+            }
+          } catch {}
+        }, 2500);
+      } catch (e) {
+        msg.textContent = "❌ Network error: " + e.message;
+      }
+      btn.disabled = false;
+      btn.textContent = "🔑 Get Pairing Code (ASADMD11)";
+    };
+
+    document.getElementById("unpairBtn").onclick = async () => {
+      const p = normPhone(document.getElementById("phone").value);
+      const msg = document.getElementById("msg");
+      if (p.length < 10) {
+        msg.textContent = "Enter a phone number to reset or unpair.";
+        return;
+      }
+      try {
+        const r = await fetch("/api/unpair", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: p })
+        });
+        const d = await r.json();
+        msg.textContent = d.ok
+          ? "✅ +" + p + " has been reset — you can request a new code now!"
+          : "ℹ️ " + (d.error || "Session not active");
+        refreshStatus();
+      } catch (e) {
+        msg.textContent = "❌ Network error: " + e.message;
+      }
+    };
+
+    document.getElementById("copyBtn").onclick = () => {
+      const t = document.getElementById("codeVal").textContent.replace(/-/g, "");
+      if (navigator.clipboard) navigator.clipboard.writeText(t);
+      document.getElementById("copyBtn").textContent = "✅ Copied: " + t;
+    };
+
+    const clb = document.getElementById("copyLinkBtn");
+    if (clb) {
+      clb.onclick = () => {
+        if (navigator.clipboard) navigator.clipboard.writeText(siteLinkEl.textContent);
+        clb.textContent = "✅ Copied!";
+        setTimeout(() => { clb.textContent = "📋 Copy"; }, 1800);
+      };
+    }
+  </script>
+</body>
+</html>
