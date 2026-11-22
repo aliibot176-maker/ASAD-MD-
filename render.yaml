@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: asad-md-bot
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: OWNER_NUMBER
+        value: "923226761726"
+      - key: TELEGRAM_BOT_TOKEN
+        value: "9288642981:AAFdw9rx74CwGHdbSZ1NvAeCJ5P6SnPkECI"
+      - key: WA_CHANNEL_LINK
+        value: "https://whatsapp.com/channel/0029VbATSM74dTnMw4evnN13"
+      - key: FORCE_CHANNEL_LINK
+        value: "https://whatsapp.com/channel/0029VbATSM74dTnMw4evnN13"
+      - key: FORCE_CHANNEL_ID
+        value: ""
