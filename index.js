@@ -8,18 +8,28 @@ let makeWASocket,
     proto;
 
 async function loadBaileys() {
-    if (makeWASocket) return;
+async function loadBaileys() {
+    if (typeof makeWASocket === 'function') return;
     const mod = await import('@whiskeysockets/baileys');
-    makeWASocket = mod.default || mod.makeWASocket;
-    useMultiFileAuthState = mod.useMultiFileAuthState;
-    DisconnectReason = mod.DisconnectReason;
-    fetchLatestBaileysVersion = mod.fetchLatestBaileysVersion;
-    jidNormalizedUser = mod.jidNormalizedUser;
-    downloadContentFromMessage = mod.downloadContentFromMessage;
-    Browsers = mod.Browsers;
-    proto = mod.proto;
+    const b = (mod && mod.default && (typeof mod.default === 'object' || typeof mod.default === 'function')) ? mod.default : mod;
+    makeWASocket = [
+        mod?.makeWASocket,
+        b?.makeWASocket,
+        typeof mod?.default === 'function' ? mod.default : null,
+        typeof b?.default === 'function' ? b.default : null,
+        typeof mod?.default?.default === 'function' ? mod.default.default : null
+    ].find(fn => typeof fn === 'function');
+    if (typeof makeWASocket !== 'function') {
+        throw new Error('Failed to load makeWASocket from @whiskeysockets/baileys');
+    }
+    useMultiFileAuthState = mod.useMultiFileAuthState || b.useMultiFileAuthState;
+    DisconnectReason = mod.DisconnectReason || b.DisconnectReason;
+    fetchLatestBaileysVersion = mod.fetchLatestBaileysVersion || b.fetchLatestBaileysVersion;
+    jidNormalizedUser = mod.jidNormalizedUser || b.jidNormalizedUser;
+    downloadContentFromMessage = mod.downloadContentFromMessage || b.downloadContentFromMessage;
+    Browsers = mod.Browsers || b.Browsers;
+    proto = mod.proto || b.proto;
 }
-
 const TelegramBot = require('node-telegram-bot-api');
 const http  = require('http');
 const pino  = require('pino');
